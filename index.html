@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Anonym im Raum abstimmen und die Stimmen als Gewicht für ein Glücksrad verwenden.">
+    <meta name="theme-color" content="#102a43">
+    <title>StimmRad – Abstimmen und entscheiden</title>
+    <link rel="stylesheet" href="css/style.css">
+  </head>
+  <body>
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <header class="app-header">
+      <div class="brand" aria-label="StimmRad Startseite">
+        <span class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </span>
+        <span>Stimm<span>Rad</span></span>
+      </div>
+
+      <ol class="steps" id="progressSteps" aria-label="Fortschritt">
+        <li data-step="1"><span>1</span><strong>Setup</strong></li>
+        <li data-step="2"><span>2</span><strong>Abstimmen</strong></li>
+        <li data-step="3"><span>3</span><strong>Glücksrad</strong></li>
+      </ol>
+    </header>
+
+    <main class="app-main" id="app">
+      <section class="view setup-view" id="setupView" aria-labelledby="setupTitle">
+        <div class="setup-intro">
+          <div>
+            <p class="eyebrow">Gemeinsam abstimmen. Spielerisch entscheiden.</p>
+            <h1 id="setupTitle">Was soll heute<br><em>das Rad entscheiden?</em></h1>
+            <p class="lead">Erstelle eine Frage, sammle anonyme Stimmen im Raum und lass die Mehrheit die Chancen auf dem Glücksrad bestimmen.</p>
+          </div>
+          <div class="feature-row" aria-label="Eigenschaften der App">
+            <span><i aria-hidden="true">✓</i> Ohne Anmeldung</span>
+            <span><i aria-hidden="true">✓</i> Lokal gespeichert</span>
+            <span><i aria-hidden="true">✓</i> Anonym</span>
+          </div>
+        </div>
+
+        <div class="setup-grid">
+          <form class="panel setup-form" id="setupForm" novalidate>
+            <div class="panel-heading">
+              <div>
+                <span class="section-number">01</span>
+                <div>
+                  <h2>Abstimmung einrichten</h2>
+                  <p>Du kannst die Angaben später noch ändern.</p>
+                </div>
+              </div>
+              <span class="draft-status" id="draftStatus"><span aria-hidden="true"></span> Lokal gespeichert</span>
+            </div>
+
+            <div class="field-group">
+              <label for="questionInput">Deine Abstimmungsfrage</label>
+              <div class="input-wrap">
+                <input id="questionInput" name="question" type="text" maxlength="120" autocomplete="off" placeholder="z. B. Was bestellen wir zum Mittag?" aria-describedby="questionHelp questionCount">
+                <span class="char-count" id="questionCount">0 / 120</span>
+              </div>
+              <p class="field-help" id="questionHelp">Formuliere die Frage so, dass alle Optionen gut dazu passen.</p>
+            </div>
+
+            <div class="form-divider"></div>
+
+            <div class="options-heading">
+              <div>
+                <label>Antwortoptionen</label>
+                <p>Mindestens 2, höchstens 8 Optionen</p>
+              </div>
+              <span class="count-badge" id="optionCount">3 / 8</span>
+            </div>
+
+            <div class="options-list" id="optionsList"></div>
+
+            <button class="button button-ghost button-small" id="addOptionButton" type="button">
+              <span aria-hidden="true">＋</span> Option hinzufügen
+            </button>
+
+            <div class="form-divider"></div>
+
+            <div class="field-group voter-field">
+              <div>
+                <label for="voterCountInput">Wie viele Personen stimmen ab?</label>
+                <p class="field-help" id="voterHelp">Das Gerät wird nach jeder Stimme weitergereicht.</p>
+              </div>
+              <div class="number-control">
+                <button type="button" id="decreaseVoters" aria-label="Personenzahl verringern">−</button>
+                <input id="voterCountInput" name="voterCount" type="number" min="1" max="99" inputmode="numeric" value="4" aria-describedby="voterHelp">
+                <button type="button" id="increaseVoters" aria-label="Personenzahl erhöhen">＋</button>
+              </div>
+            </div>
+
+            <p class="form-error" id="setupError" role="alert" hidden></p>
+
+            <button class="button button-primary button-wide" type="submit">
+              Abstimmung starten <span aria-hidden="true">→</span>
+            </button>
+          </form>
+
+          <aside class="panel explainer" aria-labelledby="explainerTitle">
+            <div class="explainer-visual" aria-hidden="true">
+              <div class="mini-wheel">
+                <span class="mini-pointer"></span>
+                <span class="mini-center"></span>
+              </div>
+              <span class="vote-bubble bubble-one">+1</span>
+              <span class="vote-bubble bubble-two">+1</span>
+              <span class="vote-bubble bubble-three">+1</span>
+            </div>
+            <h2 id="explainerTitle">So funktioniert’s</h2>
+            <ol class="explainer-steps">
+              <li><span>1</span><div><strong>Frage erstellen</strong><p>Lege Frage und Antworten fest.</p></div></li>
+              <li><span>2</span><div><strong>Gerät weitergeben</strong><p>Jede Person stimmt unbeobachtet ab.</p></div></li>
+              <li><span>3</span><div><strong>Rad drehen</strong><p>Mehr Stimmen bedeuten eine größere Chance.</p></div></li>
+            </ol>
+            <div class="privacy-note">
+              <span aria-hidden="true">⌁</span>
+              <p><strong>100 % lokal</strong>Keine Stimme verlässt dieses Gerät.</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view voting-view" id="votingView" aria-labelledby="votingQuestion" hidden>
+        <div class="vote-topline">
+          <button class="text-button" id="cancelVotingButton" type="button"><span aria-hidden="true">←</span> Abstimmung abbrechen</button>
+          <span class="vote-counter" id="voteCounter">Stimme 1 von 4</span>
+        </div>
+
+        <div class="vote-progress" role="progressbar" id="voteProgress" aria-label="Abgegebene Stimmen" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0">
+          <span id="voteProgressBar"></span>
+        </div>
+
+        <div class="vote-content">
+          <p class="eyebrow">Deine Stimme bleibt geheim</p>
+          <h1 id="votingQuestion"></h1>
+          <p class="lead">Wähle genau eine Antwort und bestätige deine Auswahl.</p>
+          <div class="answer-grid" id="answerGrid" role="radiogroup" aria-label="Antwort auswählen"></div>
+          <p class="selection-hint" id="selectionHint" aria-live="polite">Noch keine Antwort ausgewählt</p>
+          <button class="button button-primary vote-submit" id="submitVoteButton" type="button" disabled>
+            Stimme verbindlich abgeben <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="view handover-view" id="handoverView" aria-labelledby="handoverTitle" hidden>
+        <div class="handover-card panel">
+          <div class="success-mark" aria-hidden="true">✓</div>
+          <p class="eyebrow">Stimme sicher gespeichert</p>
+          <h1 id="handoverTitle">Bitte gib das Gerät weiter.</h1>
+          <p id="handoverText">Die nächste Person kann deine Auswahl nicht sehen.</p>
+          <div class="hidden-vote" aria-hidden="true"><span>•••</span><i>↗</i></div>
+          <button class="button button-primary button-wide" id="nextVoterButton" type="button">
+            Ich bin die nächste Person <span aria-hidden="true">→</span>
+          </button>
+          <small id="handoverProgress">1 von 4 Stimmen abgegeben</small>
+        </div>
+      </section>
+
+      <section class="view complete-view" id="completeView" aria-labelledby="completeTitle" hidden>
+        <div class="handover-card panel">
+          <div class="complete-mark" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+          <p class="eyebrow">Abstimmung abgeschlossen</p>
+          <h1 id="completeTitle">Alle Stimmen sind drin.</h1>
+          <p>Gib das Gerät jetzt an die Moderation zurück. Die Auswertung wird erst mit dem nächsten Schritt sichtbar.</p>
+          <button class="button button-primary button-wide" id="showResultsButton" type="button">
+            Auswertung öffnen <span aria-hidden="true">→</span>
+          </button>
+          <small id="completeCount">4 Stimmen wurden lokal gespeichert</small>
+        </div>
+      </section>
+
+      <section class="view results-view" id="resultsView" aria-labelledby="resultQuestion" hidden>
+        <div class="result-heading">
+          <div>
+            <p class="eyebrow">Das Ergebnis steht fest</p>
+            <h1 id="resultQuestion"></h1>
+            <p>Die Größe jedes Feldes entspricht seinem Stimmenanteil.</p>
+          </div>
+          <div class="total-votes"><strong id="totalVoteCount">0</strong><span>Stimmen<br>insgesamt</span></div>
+        </div>
+
+        <div class="results-grid">
+          <section class="panel wheel-panel" aria-label="Gewichtetes Glücksrad">
+            <div class="wheel-wrap" id="wheelWrap">
+              <div class="wheel-pointer" aria-hidden="true"><span></span></div>
+              <canvas class="wheel-canvas" id="wheelCanvas" width="640" height="640" role="img" aria-label="Glücksrad mit den gewichteten Antwortoptionen"></canvas>
+              <div class="wheel-center" aria-hidden="true"><span></span></div>
+            </div>
+            <button class="button spin-button" id="spinButton" type="button">
+              <span aria-hidden="true">↻</span> Rad drehen
+            </button>
+            <div class="winner-banner" id="winnerBanner" role="status" aria-live="polite" hidden>
+              <span>Das Rad entscheidet:</span>
+              <strong id="winnerText"></strong>
+            </div>
+          </section>
+
+          <aside class="panel result-panel" aria-labelledby="resultListTitle">
+            <div class="result-panel-heading">
+              <div><span class="section-number">03</span><h2 id="resultListTitle">Auswertung</h2></div>
+              <span>Abstimmungsfaktor</span>
+            </div>
+            <ol class="result-list" id="resultList"></ol>
+            <div class="factor-note">
+              <span aria-hidden="true">i</span>
+              <p><strong>So wird gewichtet</strong>Eine Stimme entspricht einem Anteil auf dem Rad. Optionen ohne Stimme haben keine Gewinnchance.</p>
+            </div>
+          </aside>
+        </div>
+
+        <div class="result-actions">
+          <button class="button button-secondary" id="repeatVotingButton" type="button"><span aria-hidden="true">↻</span> Noch einmal abstimmen</button>
+          <button class="button button-ghost" id="editSetupButton" type="button"><span aria-hidden="true">✎</span> Setup bearbeiten</button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <span>StimmRad · Level 2</span>
+      <span>Keine Datenbank · Daten bleiben im Browser</span>
+    </footer>
+
+    <dialog class="confirm-dialog" id="confirmDialog" aria-labelledby="dialogTitle" aria-describedby="dialogText">
+      <div class="dialog-icon" aria-hidden="true">?</div>
+      <h2 id="dialogTitle">Wirklich fortfahren?</h2>
+      <p id="dialogText"></p>
+      <div class="dialog-actions">
+        <button class="button button-ghost" id="dialogCancelButton" type="button">Abbrechen</button>
+        <button class="button button-danger" id="dialogConfirmButton" type="button">Fortfahren</button>
+      </div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+    <script src="js/app.js"></script>
+  </body>
+</html>
