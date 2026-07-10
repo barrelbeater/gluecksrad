@@ -47,6 +47,8 @@ Das SQL-Skript legt die Tabellen `polls`, `poll_options` und `votes` an. Datenba
 4. Branch **main** und Ordner **/(root)** auswählen und speichern.
 5. Nach kurzer Zeit zeigt GitHub dort die öffentliche URL an.
 
+Die lokalen CSS- und JavaScript-Links in `index.html` tragen eine Versionsnummer als Query-Parameter. Bei Änderungen an diesen Dateien sollte die Nummer erhöht werden, damit bereits verwendete Browser keine veralteten Level-Versionen aus ihrem Cache laden.
+
 ## Level 2: Abstimmung ohne Datenbank
 
 Es werden keine Daten an einen Server gesendet. Frage, Optionen und Stimmen bleiben im `localStorage` des verwendeten Browsers. Damit mehrere Personen ohne Datenbank abstimmen können, wird ein gemeinsames Gerät im Raum weitergereicht. Zwischen den Stimmen verdeckt ein Übergabebildschirm die vorherige Auswahl. Erst nach der letzten Stimme kann die Moderation die Auswertung öffnen.
