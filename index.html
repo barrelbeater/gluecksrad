@@ -37,7 +37,7 @@
           </div>
           <div class="feature-row" aria-label="Eigenschaften der App">
             <span><i aria-hidden="true">✓</i> Ohne Anmeldung</span>
-            <span><i aria-hidden="true">✓</i> Lokal gespeichert</span>
+            <span><i aria-hidden="true">✓</i> Lokal oder online</span>
             <span><i aria-hidden="true">✓</i> Anonym</span>
           </div>
         </div>
@@ -54,6 +54,22 @@
               </div>
               <span class="draft-status" id="draftStatus"><span aria-hidden="true"></span> Lokal gespeichert</span>
             </div>
+
+            <fieldset class="mode-picker">
+              <legend>Wie möchtet ihr abstimmen?</legend>
+              <div>
+                <button class="mode-option is-active" id="localModeButton" type="button" aria-pressed="true">
+                  <span class="mode-icon" aria-hidden="true">⌁</span>
+                  <span><strong>In einem Raum</strong><small>Ein Gerät weiterreichen</small></span>
+                  <i aria-hidden="true">✓</i>
+                </button>
+                <button class="mode-option" id="onlineModeButton" type="button" aria-pressed="false">
+                  <span class="mode-icon online" aria-hidden="true">◎</span>
+                  <span><strong>Online</strong><small>Mit Code auf eigenen Geräten</small></span>
+                  <i aria-hidden="true">✓</i>
+                </button>
+              </div>
+            </fieldset>
 
             <div class="field-group">
               <label for="questionInput">Deine Abstimmungsfrage</label>
@@ -82,7 +98,7 @@
 
             <div class="form-divider"></div>
 
-            <div class="field-group voter-field">
+            <div class="field-group voter-field" id="localVoterField">
               <div>
                 <label for="voterCountInput">Wie viele Personen stimmen ab?</label>
                 <p class="field-help" id="voterHelp">Das Gerät wird nach jeder Stimme weitergereicht.</p>
@@ -96,8 +112,8 @@
 
             <p class="form-error" id="setupError" role="alert" hidden></p>
 
-            <button class="button button-primary button-wide" type="submit">
-              Abstimmung starten <span aria-hidden="true">→</span>
+            <button class="button button-primary button-wide" id="setupSubmitButton" type="submit">
+              <span id="setupSubmitLabel">Abstimmung starten</span> <span aria-hidden="true">→</span>
             </button>
           </form>
 
@@ -119,15 +135,83 @@
             </ol>
             <div class="privacy-note">
               <span aria-hidden="true">⌁</span>
-              <p><strong>100 % lokal</strong>Keine Stimme verlässt dieses Gerät.</p>
+              <p id="privacyNoteText"><strong>100 % lokal</strong>Keine Stimme verlässt dieses Gerät.</p>
             </div>
+            <form class="join-box" id="quickJoinForm">
+              <label for="quickJoinCode">Schon einen Online-Code?</label>
+              <div>
+                <input id="quickJoinCode" type="text" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC234" aria-label="Sechsstelliger Abstimmungscode">
+                <button type="submit" aria-label="Online-Abstimmung beitreten">→</button>
+              </div>
+            </form>
           </aside>
+        </div>
+      </section>
+
+      <section class="view online-join-view" id="onlineJoinView" aria-labelledby="onlineJoinTitle" hidden>
+        <button class="text-button online-home-button" type="button"><span aria-hidden="true">←</span> Zur Startseite</button>
+        <div class="online-center-card panel">
+          <div class="online-orbit" aria-hidden="true"><span></span><i></i><b></b></div>
+          <p class="eyebrow">Online abstimmen</p>
+          <h1 id="onlineJoinTitle">Tritt einer Abstimmung bei.</h1>
+          <p>Gib den sechsstelligen Code der Moderation ein. Du brauchst kein Konto.</p>
+          <form id="onlineJoinForm" novalidate>
+            <label for="onlineJoinCode">Abstimmungscode</label>
+            <input class="code-input" id="onlineJoinCode" type="text" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" placeholder="ABC234">
+            <p class="form-error" id="onlineJoinError" role="alert" hidden></p>
+            <button class="button button-primary button-wide" id="onlineJoinButton" type="submit">
+              Abstimmung beitreten <span aria-hidden="true">→</span>
+            </button>
+          </form>
+          <small>Anonym · Eine Stimme pro Browser · Keine persönlichen Daten</small>
+        </div>
+      </section>
+
+      <section class="view online-host-view" id="onlineHostView" aria-labelledby="onlineHostQuestion" hidden>
+        <div class="online-host-topline">
+          <button class="text-button" id="leaveOnlineHostButton" type="button"><span aria-hidden="true">←</span> Abstimmung verlassen</button>
+          <span class="live-status"><i aria-hidden="true"></i> Live verbunden</span>
+        </div>
+
+        <div class="online-host-heading">
+          <div>
+            <p class="eyebrow">Online-Abstimmung läuft</p>
+            <h1 id="onlineHostQuestion"></h1>
+            <p>Teile den Code. Neue Stimmen erscheinen automatisch.</p>
+          </div>
+          <div class="host-vote-total"><strong id="hostVoteCount">0</strong><span>Stimmen<br>live</span></div>
+        </div>
+
+        <div class="online-host-grid">
+          <aside class="panel share-panel">
+            <span class="panel-kicker">Raumcode</span>
+            <strong class="room-code" id="hostRoomCode">------</strong>
+            <p>Teilnehmer:innen öffnen die App und geben diesen Code ein.</p>
+            <button class="button button-secondary button-wide" id="copyJoinLinkButton" type="button"><span aria-hidden="true">⧉</span> Einladungslink kopieren</button>
+            <div class="share-link" id="hostShareLink"></div>
+          </aside>
+
+          <section class="panel live-results-panel" aria-labelledby="liveResultTitle">
+            <div class="live-results-heading">
+              <div><span class="section-number">02</span><div><h2 id="liveResultTitle">Live-Eingang</h2><p>Nur die Moderation sieht die Zwischenstände.</p></div></div>
+              <span id="hostConnectionLabel">Aktuell</span>
+            </div>
+            <ol class="host-option-list" id="hostOptionList"></ol>
+            <p class="empty-votes" id="hostEmptyVotes">Noch keine Stimme – der Code kann jetzt geteilt werden.</p>
+          </section>
+        </div>
+
+        <p class="online-action-status" id="hostActionStatus" role="status" aria-live="polite"></p>
+        <div class="host-actions">
+          <button class="button button-primary" id="closeOnlinePollButton" type="button" disabled>
+            Abstimmung beenden &amp; Glücksrad öffnen <span aria-hidden="true">→</span>
+          </button>
         </div>
       </section>
 
       <section class="view voting-view" id="votingView" aria-labelledby="votingQuestion" hidden>
         <div class="vote-topline">
-          <button class="text-button" id="cancelVotingButton" type="button"><span aria-hidden="true">←</span> Abstimmung abbrechen</button>
+          <button class="text-button" id="cancelVotingButton" type="button"><span aria-hidden="true">←</span> <span id="cancelVotingLabel">Abstimmung abbrechen</span></button>
           <span class="vote-counter" id="voteCounter">Stimme 1 von 4</span>
         </div>
 
@@ -136,14 +220,27 @@
         </div>
 
         <div class="vote-content">
-          <p class="eyebrow">Deine Stimme bleibt geheim</p>
+          <p class="eyebrow" id="votingEyebrow">Deine Stimme bleibt geheim</p>
           <h1 id="votingQuestion"></h1>
-          <p class="lead">Wähle genau eine Antwort und bestätige deine Auswahl.</p>
+          <p class="lead" id="votingLead">Wähle genau eine Antwort und bestätige deine Auswahl.</p>
           <div class="answer-grid" id="answerGrid" role="radiogroup" aria-label="Antwort auswählen"></div>
           <p class="selection-hint" id="selectionHint" aria-live="polite">Noch keine Antwort ausgewählt</p>
           <button class="button button-primary vote-submit" id="submitVoteButton" type="button" disabled>
             Stimme verbindlich abgeben <span aria-hidden="true">→</span>
           </button>
+        </div>
+      </section>
+
+      <section class="view online-thanks-view" id="onlineThanksView" aria-labelledby="onlineThanksTitle" hidden>
+        <button class="text-button online-home-button" id="leaveOnlineParticipantButton" type="button"><span aria-hidden="true">←</span> Raum verlassen</button>
+        <div class="online-center-card panel">
+          <div class="success-mark" aria-hidden="true">✓</div>
+          <p class="eyebrow">Online gespeichert</p>
+          <h1 id="onlineThanksTitle">Deine Stimme ist angekommen.</h1>
+          <p>Du kannst diese Seite offen lassen. Sobald die Moderation die Abstimmung beendet, erscheint hier automatisch das Ergebnis.</p>
+          <div class="waiting-pulse" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div class="participant-room">Raum <strong id="participantRoomCode">------</strong></div>
+          <small id="participantConnectionLabel">Warte auf die Moderation …</small>
         </div>
       </section>
 
@@ -179,9 +276,9 @@
       <section class="view results-view" id="resultsView" aria-labelledby="resultQuestion" hidden>
         <div class="result-heading">
           <div>
-            <p class="eyebrow">Das Ergebnis steht fest</p>
+            <p class="eyebrow" id="resultEyebrow">Das Ergebnis steht fest</p>
             <h1 id="resultQuestion"></h1>
-            <p>Die Größe jedes Feldes entspricht seinem Stimmenanteil.</p>
+            <p id="resultLead">Die Größe jedes Feldes entspricht seinem Stimmenanteil.</p>
           </div>
           <div class="total-votes"><strong id="totalVoteCount">0</strong><span>Stimmen<br>insgesamt</span></div>
         </div>
@@ -196,6 +293,7 @@
             <button class="button spin-button" id="spinButton" type="button">
               <span aria-hidden="true">↻</span> Rad drehen
             </button>
+            <p class="participant-wheel-note" id="participantWheelNote" hidden>Die Moderation dreht das Glücksrad.</p>
             <div class="winner-banner" id="winnerBanner" role="status" aria-live="polite" hidden>
               <span>Das Rad entscheidet:</span>
               <strong id="winnerText"></strong>
@@ -223,8 +321,8 @@
     </main>
 
     <footer class="app-footer">
-      <span>StimmRad · Level 2</span>
-      <span>Keine Datenbank · Daten bleiben im Browser</span>
+      <span>StimmRad · Level 3</span>
+      <span id="footerStatus">Lokal oder online · Ohne persönliche Daten</span>
     </footer>
 
     <dialog class="confirm-dialog" id="confirmDialog" aria-labelledby="dialogTitle" aria-describedby="dialogText">
@@ -239,6 +337,8 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
     <script src="js/app.js"></script>
   </body>
 </html>
