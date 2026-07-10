@@ -10,7 +10,7 @@ Eine responsive Web-App für lokale und geräteübergreifende Online-Abstimmunge
 - Online-Abstimmungen mit sechsstelligen Raumcodes
 - Anonyme Teilnahme auf eigenen Smartphones oder Computern
 - Live-Aktualisierung der Stimmen für die Moderation
-- Synchronisiertes Gewinnergebnis auf allen Geräten
+- Synchronisierte Rad-Drehung und Gewinnergebnis auf allen Geräten
 - Gewichtetes, animiertes Glücksrad
 - Ergebnisübersicht mit Stimmen und Wahrscheinlichkeiten
 - Automatische lokale Speicherung im Browser

@@ -37,6 +37,8 @@
   let onlinePollingTimer = null;
   let onlineBusy = false;
   let authPromise = null;
+  let pendingParticipantSpin = null;
+  let participantSpinInProgress = false;
 
   const elements = {
     views: {
@@ -547,6 +549,7 @@
   function renderResults() {
     const isOnline = state.mode === "online";
     const isOnlineParticipant = isOnline && state.role === "participant";
+    const hasPendingParticipantSpin = isOnlineParticipant && (pendingParticipantSpin || participantSpinInProgress);
     elements.resultQuestion.textContent = state.question;
     elements.totalVoteCount.textContent = String(state.votesCast);
     elements.resultEyebrow.textContent = isOnline ? "Online-Abstimmung beendet" : "Das Ergebnis steht fest";
@@ -600,7 +603,7 @@
       ? '<span aria-hidden="true">←</span> Zur Startseite'
       : '<span aria-hidden="true">✎</span> Setup bearbeiten';
 
-    if (isOnline && state.online.winnerOptionId) {
+    if (isOnline && state.online.winnerOptionId && !hasPendingParticipantSpin) {
       const winner = state.options.find((option) => option.id === state.online.winnerOptionId);
       if (winner) {
         elements.winnerText.textContent = winner.text;
@@ -611,7 +614,19 @@
     wheelRotation = 0;
     elements.wheelCanvas.style.transition = "none";
     elements.wheelCanvas.style.transform = "rotate(0deg)";
-    window.requestAnimationFrame(drawWheel);
+    window.requestAnimationFrame(() => {
+      drawWheel();
+      if (participantSpinInProgress) {
+        return;
+      }
+      if (pendingParticipantSpin) {
+        const pending = pendingParticipantSpin;
+        pendingParticipantSpin = null;
+        animateParticipantWinner(pending.optionId);
+      } else if (isOnline && state.online.winnerOptionId) {
+        positionWheelAtOption(state.online.winnerOptionId);
+      }
+    });
   }
 
   function normalizeRadians(angle) {
@@ -708,6 +723,22 @@
     );
   }
 
+  function targetRotationForOption(optionId) {
+    const segment = wheelSegments.find((item) => item.option.id === optionId);
+    if (!segment) return null;
+    const middleDegrees = (segment.start + segment.arc / 2) * (180 / Math.PI);
+    return normalizeDegrees(-90 - middleDegrees);
+  }
+
+  function positionWheelAtOption(optionId) {
+    const targetRotation = targetRotationForOption(optionId);
+    if (targetRotation === null) return false;
+    wheelRotation = targetRotation;
+    elements.wheelCanvas.style.transition = "none";
+    elements.wheelCanvas.style.transform = `rotate(${targetRotation}deg)`;
+    return true;
+  }
+
   function secureRandom() {
     if (window.crypto && typeof window.crypto.getRandomValues === "function") {
       const values = new Uint32Array(1);
@@ -730,8 +761,8 @@
   function spinWheel() {
     if (!wheelSegments.length || elements.spinButton.disabled) return;
     const selectedOption = weightedRandomOption();
-    const selectedSegment = wheelSegments.find((segment) => segment.option.id === selectedOption.id);
-    if (!selectedSegment) return;
+    const desiredRotation = targetRotationForOption(selectedOption.id);
+    if (desiredRotation === null) return;
 
     spinSequence += 1;
     const currentSpin = spinSequence;
@@ -739,8 +770,13 @@
     elements.spinButton.disabled = true;
     elements.spinButton.textContent = "Rad dreht sich …";
 
-    const segmentMiddleDegrees = (selectedSegment.start + selectedSegment.arc / 2) * (180 / Math.PI);
-    const desiredRotation = normalizeDegrees(-90 - segmentMiddleDegrees);
+    if (state.mode === "online" && state.role === "host") {
+      const nextSpinVersion = (state.online.spinVersion || 0) + 1;
+      state.online.winnerOptionId = selectedOption.id;
+      state.online.spinVersion = nextSpinVersion;
+      saveOnlineWinner(selectedOption.id, nextSpinVersion);
+    }
+
     const currentRotation = normalizeDegrees(wheelRotation);
     const alignment = normalizeDegrees(desiredRotation - currentRotation);
     const fullTurns = 5 + Math.floor(secureRandom() * 3);
@@ -764,10 +800,6 @@
       elements.winnerBanner.hidden = false;
       elements.spinButton.disabled = false;
       elements.spinButton.innerHTML = '<span aria-hidden="true">↻</span> Noch einmal drehen';
-      if (state.mode === "online" && state.role === "host") {
-        state.online.winnerOptionId = selectedOption.id;
-        saveOnlineWinner(selectedOption.id);
-      }
     };
 
     canvas.addEventListener("transitionend", finishSpin, { once: true });
@@ -824,7 +856,8 @@
         pollId: poll.id,
         code: poll.code,
         status: poll.status,
-        winnerOptionId: poll.winner_option_id || null
+        winnerOptionId: poll.winner_option_id || null,
+        spinVersion: Number.parseInt(poll.spin_version, 10) || 0
       }
     };
   }
@@ -929,13 +962,15 @@
       voterTarget: 1,
       votesCast: 0,
       options: [],
-      online: { pollId: null, code: normalizeRoomCode(code), status: "open", winnerOptionId: null }
+      online: { pollId: null, code: normalizeRoomCode(code), status: "open", winnerOptionId: null, spinVersion: 0 }
     };
     renderApp();
   }
 
   function returnToLocalSetup(preferOnline = false) {
     cleanupOnlineConnection();
+    pendingParticipantSpin = null;
+    participantSpinInProgress = false;
     try {
       localStorage.removeItem(ONLINE_SESSION_KEY);
     } catch (error) {
@@ -1035,7 +1070,7 @@
         const { data, error } = await supabaseClient
           .from("polls")
           .insert({ code: generateRoomCode(), question: draft.question, host_id: user.id })
-          .select("id, code, question, status, host_id, winner_option_id")
+          .select("id, code, question, status, host_id, winner_option_id, spin_version")
           .single();
         if (!error) poll = data;
         else if (error.code === "23505") lastError = error;
@@ -1099,7 +1134,7 @@
       const user = await ensureAnonymousUser();
       const { data: poll, error: pollError } = await supabaseClient
         .from("polls")
-        .select("id, code, question, status, host_id, winner_option_id")
+        .select("id, code, question, status, host_id, winner_option_id, spin_version")
         .eq("code", code)
         .maybeSingle();
       if (pollError) throw pollError;
@@ -1216,7 +1251,7 @@
         .from("polls")
         .update({ status: "closed", closed_at: new Date().toISOString() })
         .eq("id", state.online.pollId)
-        .select("id, code, question, status, host_id, winner_option_id")
+        .select("id, code, question, status, host_id, winner_option_id, spin_version")
         .single();
       if (error) throw error;
       state.online.status = poll.status;
@@ -1245,11 +1280,11 @@
     else cleanupOnlineConnection();
   }
 
-  async function saveOnlineWinner(optionId) {
+  async function saveOnlineWinner(optionId, spinVersion) {
     try {
       const { error } = await supabaseClient
         .from("polls")
-        .update({ winner_option_id: optionId })
+        .update({ winner_option_id: optionId, spin_version: spinVersion })
         .eq("id", state.online.pollId);
       if (error) throw error;
     } catch (error) {
@@ -1257,21 +1292,74 @@
     }
   }
 
-  function updateParticipantWinner(optionId) {
-    if (!optionId || state.screen !== "results") return;
+  function animateParticipantWinner(optionId) {
+    if (!optionId || state.screen !== "results" || state.role !== "participant") return;
     const winner = state.options.find((option) => option.id === optionId);
     if (!winner) return;
-    state.online.winnerOptionId = optionId;
-    elements.winnerText.textContent = winner.text;
-    elements.winnerBanner.hidden = false;
-    elements.participantWheelNote.hidden = true;
+    pendingParticipantSpin = null;
+    let desiredRotation = targetRotationForOption(optionId);
+    if (desiredRotation === null) {
+      drawWheel();
+      desiredRotation = targetRotationForOption(optionId);
+    }
+    if (desiredRotation === null) return;
+
+    participantSpinInProgress = true;
+    spinSequence += 1;
+    const currentSpin = spinSequence;
+    elements.winnerBanner.hidden = true;
+    elements.participantWheelNote.hidden = false;
+    elements.participantWheelNote.textContent = "Das Glücksrad dreht sich …";
+
+    const currentRotation = normalizeDegrees(wheelRotation);
+    const alignment = normalizeDegrees(desiredRotation - currentRotation);
+    wheelRotation += 6 * 360 + alignment;
+
+    const duration = prefersReducedMotion.matches ? 60 : 4700;
+    const canvas = elements.wheelCanvas;
+    canvas.style.transition = "none";
+    canvas.style.transform = `rotate(${currentRotation}deg)`;
+    void canvas.offsetWidth;
+    canvas.style.transition = `transform ${duration}ms cubic-bezier(0.12, 0.62, 0.1, 1)`;
+
+    let completed = false;
+    const finishSpin = () => {
+      if (completed || currentSpin !== spinSequence) return;
+      completed = true;
+      participantSpinInProgress = false;
+      wheelRotation = normalizeDegrees(wheelRotation);
+      canvas.style.transition = "none";
+      canvas.style.transform = `rotate(${wheelRotation}deg)`;
+      elements.winnerText.textContent = winner.text;
+      elements.winnerBanner.hidden = false;
+      elements.participantWheelNote.hidden = true;
+    };
+
+    canvas.addEventListener("transitionend", finishSpin, { once: true });
+    window.requestAnimationFrame(() => {
+      canvas.style.transform = `rotate(${wheelRotation}deg)`;
+    });
+    window.setTimeout(finishSpin, duration + 180);
   }
 
   async function handlePollUpdate(poll) {
     if (!poll || state.mode !== "online" || poll.id !== state.online.pollId) return;
     const previousStatus = state.online.status;
+    const previousSpinVersion = state.online.spinVersion || 0;
+    const incomingSpinVersion = Number.parseInt(poll.spin_version, 10) || 0;
+    const hasNewParticipantSpin =
+      state.role === "participant" &&
+      poll.winner_option_id &&
+      incomingSpinVersion > previousSpinVersion;
+    if (hasNewParticipantSpin) {
+      pendingParticipantSpin = {
+        optionId: poll.winner_option_id,
+        spinVersion: incomingSpinVersion
+      };
+    }
     state.online.status = poll.status;
     state.online.winnerOptionId = poll.winner_option_id || null;
+    state.online.spinVersion = incomingSpinVersion;
 
     if (state.role === "participant" && poll.status === "closed" && previousStatus !== "closed") {
       try {
@@ -1282,8 +1370,9 @@
       return;
     }
 
-    if (state.role === "participant" && poll.winner_option_id) {
-      updateParticipantWinner(poll.winner_option_id);
+    if (hasNewParticipantSpin && state.screen === "results") {
+      pendingParticipantSpin = null;
+      animateParticipantWinner(poll.winner_option_id);
     }
   }
 
@@ -1291,7 +1380,7 @@
     if (state.mode !== "online" || !state.online?.pollId) return;
     const { data, error } = await supabaseClient
       .from("polls")
-      .select("id, status, winner_option_id")
+      .select("id, status, winner_option_id, spin_version")
       .eq("id", state.online.pollId)
       .maybeSingle();
     if (!error && data) await handlePollUpdate(data);

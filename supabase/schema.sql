@@ -14,9 +14,15 @@ create table if not exists public.polls (
   host_id uuid not null default auth.uid()
     references auth.users(id) on delete cascade,
   winner_option_id uuid,
+  spin_version integer not null default 0,
   created_at timestamptz not null default now(),
   closed_at timestamptz
 );
+
+-- Ergänzt die Spalte auch bei Projekten, die bereits mit einer älteren
+-- Version dieses wiederholbar ausführbaren Skripts eingerichtet wurden.
+alter table public.polls
+  add column if not exists spin_version integer not null default 0;
 
 create table if not exists public.poll_options (
   id uuid primary key default gen_random_uuid(),
